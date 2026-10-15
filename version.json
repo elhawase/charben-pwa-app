@@ -1,0 +1,7 @@
+{
+  "versionCode": 7,
+  "versionName": "1.3.0",
+  "downloadUrl": "https://app.charben-industrie.com/download/charben.apk",
+  "forceUpdate": false,
+  "releaseNotes": "Version 1.3.0 — architecture 100% Firebase/Firestore.\n\nPour publier une mise a jour :\n1. Incrementer versionCode (entier, toujours croissant) et versionName ici.\n2. Deposer l'APK signe dans le dossier download/ du sous-domaine.\n3. Mettre forceUpdate a true uniquement pour une mise a jour obligatoire."
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Gestion des Découpes — Charben",
+  "short_name": "Charben",
+  "description": "Application de gestion des découpes pour scierie industrielle",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1d21",
+  "theme_color": "#2D5A30",
+  "icons": [
+    {
+      "src": "logo charben industrie.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "logo charben industrie.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}

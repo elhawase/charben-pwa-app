@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CharbenAPK — Flux des modules</title>
+<style>
+body{font-family:Inter,sans-serif;background:#0f172a;color:#e2e8f0;padding:40px;margin:0}
+h1{color:#10b981;font-size:24px;margin-bottom:8px}
+h2{color:#a78bfa;font-size:18px;margin-top:32px;margin-bottom:12px}
+.sub{color:#94a3b8;font-size:13px;margin-bottom:24px}
+.module{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;margin-bottom:16px}
+.module h3{color:#38bdf8;font-size:15px;margin:0 0 6px 0}
+.module .keys{color:#10b981;font-size:12px;font-weight:600}
+.module ul{color:#94a3b8;font-size:12px;margin:6px 0 0 0;padding-left:18px}
+.flow{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;margin-bottom:16px}
+.flow h3{color:#f59e0b;font-size:15px;margin:0 0 8px 0}
+.arrow{color:#10b981;font-size:13px;margin:4px 0}
+.badge{display:inline-block;background:#334155;border-radius:6px;padding:2px 8px;font-size:11px;margin:2px}
+.badge-g{background:#065f46;color:#10b981}
+.badge-b{background:#1e3a5f;color:#38bdf8}
+.badge-o{background:#7c2d12;color:#fb923c}
+</style>
+</head>
+<body>
+<h1>🪵 CharbenAPK — Flux des modules</h1>
+<p class="sub">10 modules · 190+ clés · 2850 lignes extraites · app.js 9154→8502 lignes</p>
+
+<h2>📦 Modules — Architecture</h2>
+
+<div class="module">
+<h3>constants.js</h3>
+<span class="keys">130 labels + 11 tables</span>
+<ul><li>DATA_FIELD_LABELS — libellés français des champs</li>
+<li>DATA_TABLE_COLUMNS — colonnes par table (orders, rawMaterials, wipProducts...)</li></ul>
+</div>
+
+<div class="module">
+<h3>utils.js</h3>
+<span class="keys">10 fonctions pures</span>
+<ul><li>flattenOrderRow / unflattenRow — transformation objets</li>
+<li>csvCell / dataXmlEscape — échappement</li>
+<li>parseCsv / splitCsvLine / cleanCsvCell — parsing CSV</li>
+<li>downloadBlob / humanizeKey / dataCellValue</li></ul>
+</div>
+
+<div class="module">
+<h3>stock-manager.js</h3>
+<span class="keys">17 clés — StockManager</span>
+<ul><li>LOCATIONS (Parc grumes, Atelier A1-A4/B1-B4, Séchage, PF)</li>
+<li>createPart / createStockItem / moveStock / consumeStock</li>
+<li>createBuildOrder / startBuildOrder / completeBuildOrder</li>
+<li>findPartById / findStockByLocation / getTotalStockForPart</li></ul>
+</div>
+
+<div class="module">
+<h3>of-logic.js</h3>
+<span class="keys">12 clés — Calculs pures</span>
+<ul><li>gammeClass — classification SB/CC</li>
+<li>sfCode / sfMachinePath — codes semi-finis</li>
+<li>pieceDesignation — dénomination AFNOR (Madrier, Chevron, Planche...)</li>
+<li>validateGammePieces — validation gamme</li>
+<li>ccMachineInfo / sbMachineInfo — calculs cales/disques</li>
+<li>resolveOfWidths — résolution largeurs</li>
+<li>needsForCombos / shortagesOf — pénuries cales</li></ul>
+</div>
+
+<div class="module">
+<h3>of-manager.js</h3>
+<span class="keys">3 clés — Ordres de fabrication</span>
+<ul><li>createOfFromSpec — création OF (TaskAllocator + StockManager + EventBus)</li>
+<li>buildOfSemiItems — construction items semi-finis</li>
+<li>ofPostSciageOutput — post-traitement sciage (création WIP)</li></ul>
+</div>
+
+<div class="module">
+<h3>wip-manager.js</h3>
+<span class="keys">9 clés — Séchage (produits semi-finis)</span>
+<ul><li>createWipFromOf / addWipProduct — entrée en WIP depuis l'OF</li>
+<li>renderWipList / renderWipMatrix / renderWipOfSelect — rendus</li>
+<li>previewVolume — projection volume</li>
+<li>toggleWipStatus / deleteWipProduct — gestion</li>
+<li>transferWipToPf — semi-fini conforme → stock PF</li></ul>
+</div>
+
+<div class="module">
+<h3>ui-renderer.js</h3>
+<span class="keys">5 clés — Rendu listes</span>
+<ul><li>renderGrumes / renderGrumesStats — matières premières</li>
+<li>renderProduitsFinis / renderPfRecap — produits finis</li>
+<li>renderAll — dispatcher rendu initial</li></ul>
+</div>
+
+<div class="module">
+<h3>ui-components.js</h3>
+<span class="keys">6 clés — Composants SVG</span>
+<ul><li>v2Gauge — jauge circulaire (rendement, stock)</li>
+<li>animateCounters — animation KPI</li>
+<li>settingsSwitchRow — rangée paramètres</li>
+<li>buildSettingsDiagram / buildRipDiagram / buildDossesDiagram — diagrammes SVG</li></ul>
+</div>
+
+<div class="module">
+<h3>fiche-renderer.js</h3>
+<span class="keys">5 clés — Fiches de sciage</span>
+<ul><li>buildFicheSciageHtml — fiche A1 (stock grumes)</li>
+<li>buildCcFicheHtml — fiche CC (centre centrales)</li>
+<li>buildSbFicheHtml — fiche SB (latérales)</li>
+<li>buildDossesFicheHtml — fiche dosses</li>
+<li>buildMachineFicheHtml — dispatcher par machine</li></ul>
+</div>
+
+<div class="module">
+<h3>sync-manager.js</h3>
+<span class="keys">2 clés — Auth + Firestore</span>
+<ul><li>initAuth — restauration session (Firebase REST API)</li>
+<li>startRealtimeSync — 14 abonnements temps réel</li></ul>
+</div>
+
+<h2>🔄 Flux de données</h2>
+
+<div class="flow">
+<h3>1. Création OF</h3>
+<div class="arrow">Planning → <b>of-manager.createOfFromSpec()</b></div>
+<div class="arrow">↓ TaskAllocator.allocate() → assigne poste A1/B1</div>
+<div class="arrow">↓ StockManager.createBuildOrder() → tracking WIP</div>
+<div class="arrow">↓ EventBus.publish(OF_CREATED)</div>
+</div>
+
+<div class="flow">
+<h3>2. Sciage (A1 → A2/A3/A4)</h3>
+<div class="arrow">Grume lancée sur A1 → <b>of-logic.ccMachineInfo()</b> → cales CC</div>
+<div class="arrow">↓ <b>of-logic.sbMachineInfo()</b> → cales SB</div>
+<div class="arrow">↓ <b>fiche-renderer.buildCcFicheHtml()</b> → fiche A2</div>
+<div class="arrow">↓ <b>fiche-renderer.buildSbFicheHtml()</b> → fiche A3</div>
+<div class="arrow">↓ <b>fiche-renderer.buildDossesFicheHtml()</b> → fiche A4</div>
+</div>
+
+<div class="flow">
+<h3>3. Post-sciage (WIP)</h3>
+<div class="arrow">OF terminé → <b>of-manager.ofPostSciageOutput()</b></div>
+<div class="arrow">↓ of-manager.buildOfSemiItems() → items semi-finis</div>
+<div class="arrow">↓ items semi-finis → <b>wipProducts[]</b> (lots de séchage)</div>
+<div class="arrow">↓ StockManager consomme grumes (EN_COURSE→CONSOMME)</div>
+<div class="arrow">↓ EventBus.publish(OF_COMPLETED + STOCK_CHANGED)</div>
+</div>
+
+<div class="flow">
+<h3>4. Séchage</h3>
+<div class="arrow">Pièces semi-finies → <b>wipProducts[]</b> (lots de séchage)</div>
+<div class="arrow">↓ wip-manager.renderWipList() / renderWipMatrix() → UI</div>
+<div class="arrow">↓ wip-manager.toggleWipStatus() → terminé</div>
+</div>
+
+<div class="flow">
+<h3>5. Transfert PF</h3>
+<div class="arrow">Lot terminé → <b>wip-manager.transferWipToPf()</b></div>
+<div class="arrow">↓ StockManager PF = finishedGoods[]</div>
+<div class="arrow">↓ EventBus.publish(STOCK_CHANGED)</div>
+</div>
+
+<div class="flow">
+<h3>6. Rendu UI</h3>
+<div class="arrow"><b>ui-renderer.renderAll()</b> → tous écrans</div>
+<div class="arrow">↓ ui-renderer.renderGrumes() → liste MP</div>
+<div class="arrow">↓ ui-renderer.renderProduitsFinis() → liste PF</div>
+<div class="arrow">↓ ui-components.v2Gauge() → jauges KPI</div>
+<div class="arrow">↓ ui-components.buildSettingsDiagram() → diagramme cales</div>
+</div>
+
+<div class="flow">
+<h3>7. Sync temps réel</h3>
+<div class="arrow"><b>sync-manager.initAuth()</b> → session Firebase</div>
+<div class="arrow">↓ sync-manager.startRealtimeSync()</div>
+<div class="arrow">↓ 14 abonnements Firestore (raw, dry, stock, equip, maint...)</div>
+<div class="arrow">↓ Polling orders toutes les 15s</div>
+</div>
+
+<h2>🔗 Dépendances inter-modules</h2>
+<div class="flow">
+<h3>Qui appelle quoi</h3>
+<div class="arrow"><span class="badge badge-b">of-manager</span> → <span class="badge badge-g">of-logic</span> (gammeClass, sfCode, sfMachinePath)</div>
+<div class="arrow"><span class="badge badge-b">of-manager</span> → <span class="badge badge-g">stock-manager</span> (createBuildOrder, consumeStock)</div>
+<div class="arrow"><span class="badge badge-b">of-manager</span> → <span class="badge badge-o">EventBus</span> (OF_CREATED, OF_COMPLETED)</div>
+<div class="arrow"><span class="badge badge-b">of-manager</span> → <span class="badge badge-b">wip-manager</span> (renderWipMatrix)</div>
+<div class="arrow"><span class="badge badge-b">wip-manager</span> → <span class="badge badge-g">stock-manager</span> (PF transfer)</div>
+<div class="arrow"><span class="badge badge-b">fiche-renderer</span> → <span class="badge badge-g">of-logic</span> (ccMachineInfo, sbMachineInfo)</div>
+<div class="arrow"><span class="badge badge-b">fiche-renderer</span> → <span class="badge badge-b">ui-components</span> (buildRipDiagram, buildDossesDiagram)</div>
+<div class="arrow"><span class="badge badge-b">ui-renderer</span> → <span class="badge badge-b">wip-manager</span> (renderWipList)</div>
+<div class="arrow"><span class="badge badge-b">sync-manager</span> → <span class="badge badge-b">ui-renderer</span> (renderGrumes, renderDryList...)</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com wss://*.firebaseio.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:;">
+  <title>Charben Industrie — Admin Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%232D5A30'/%3E%3Cpath d='M4 16l6-9 4 5 4-3 2 7z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="tabler.min.css">
+  <style>
+    @font-face {
+      font-family: 'Material Symbols Outlined';
+      font-style: normal;
+      font-weight: 400;
+      src: url(../fonts/material-symbols-outlined.woff2) format('woff2');
+    }
+    .mi {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      vertical-align: middle;
+    }
+    .mi-sm { font-size: 16px; }
+    .mi-lg { font-size: 28px; }
+    .mi-xl { font-size: 36px; }
+    .mi-green { color: #10b981; }
+    .mi-red { color: #ef4444; }
+    .mi-amber { color: #f59e0b; }
+    .mi-blue { color: #3b82f6; }
+    .mi-muted { color: #64748b; }
+
+    :root {
+      --charben-primary: #059669;
+      --charben-primary-light: rgba(5,150,105,0.15);
+      --charben-danger: #ef4444;
+      --charben-warning: #f59e0b;
+      --charben-info: #3b82f6;
+      --charben-success: #10b981;
+    }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .page-wrapper { min-height: 100vh; }
+
+    .kpi-card {
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,41,59,0.9));
+      border: 1px solid rgba(5,150,105,0.2);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+      border-color: rgba(5,150,105,0.4);
+      box-shadow: 0 8px 32px rgba(5,150,105,0.15);
+      transform: translateY(-2px);
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--charben-primary), #10b981);
+    }
+    .kpi-card .kpi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .kpi-card .kpi-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin: 8px 0 4px;
+    }
+    .kpi-card .kpi-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-card .kpi-change {
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+
+    .chart-card {
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,41,59,0.9));
+      border: 1px solid rgba(5,150,105,0.15);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .chart-card .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .chart-card .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .data-card {
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,41,59,0.9));
+      border: 1px solid rgba(5,150,105,0.15);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .data-card .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(5,150,105,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .data-card .card-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .data-card table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-card th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(5,150,105,0.1);
+    }
+    .data-card td {
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(5,150,105,0.05);
+    }
+    .data-card tr:hover td {
+      background: rgba(5,150,105,0.05);
+    }
+
+    .badge-success { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .badge-warning { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .badge-danger { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-info { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+    .badge-primary { background: rgba(5,150,105,0.15); color: #10b981; border: 1px solid rgba(5,150,105,0.3); }
+
+    .progress-bar-custom {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(5,150,105,0.1);
+      overflow: hidden;
+    }
+    .progress-bar-custom .fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #059669, #10b981);
+      transition: width 0.6s ease;
+    }
+
+    .sidebar-custom {
+      background: linear-gradient(180deg, #0f172a, #1e293b);
+      border-right: 1px solid rgba(5,150,105,0.15);
+    }
+    .sidebar-custom .nav-link {
+      color: #94a3b8;
+      border-radius: 8px;
+      margin: 2px 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .sidebar-custom .nav-link:hover {
+      color: #e2e8f0;
+      background: rgba(5,150,105,0.1);
+    }
+    .sidebar-custom .nav-link.active {
+      color: #10b981;
+      background: rgba(5,150,105,0.15);
+    }
+    .sidebar-custom .nav-link .mi {
+      font-size: 20px;
+      margin-right: 10px;
+    }
+
+    .topbar-custom {
+      background: rgba(15,23,42,0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(5,150,105,0.15);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-custom { display: none; }
+      .page-wrapper { margin-left: 0 !important; }
+      .kpi-card .kpi-value { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- SIDEBAR -->
+    <aside class="sidebar sidebar-custom d-print-none" style="width:240px;">
+      <div class="sidebar-header" style="padding:16px 20px;border-bottom:1px solid rgba(5,150,105,0.1);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#059669,#10b981);display:flex;align-items:center;justify-content:center;">
+            <span class="mi" style="font-size:20px;color:#fff;">precision_manufacturing</span>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">Charben</div>
+            <div style="font-size:0.7rem;color:#64748b;">Industrie Admin</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav" style="padding:12px 0;">
+        <a href="#" class="nav-link active" onclick="showSection('dashboard')"><span class="mi">dashboard</span>Tableau de bord</a>
+        <a href="#" class="nav-link" onclick="showSection('production')"><span class="mi">precision_manufacturing</span>Production</a>
+        <a href="#" class="nav-link" onclick="showSection('stock')"><span class="mi">inventory_2</span>Stock</a>
+        <a href="#" class="nav-link" onclick="showSection('sechage')"><span class="mi">layers</span>Semi-finis (WIP)</a>
+        <a href="#" class="nav-link" onclick="showSection('equipement')"><span class="mi">construction</span>Équipements</a>
+        <a href="#" class="nav-link" onclick="showSection('equipe')"><span class="mi">group</span>Équipes</a>
+        <a href="#" class="nav-link" onclick="showSection('donnees')"><span class="mi">delete_sweep</span>Données</a>
+      </nav>
+      <div style="padding:12px 20px;border-top:1px solid rgba(5,150,105,0.1);margin-top:auto;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#64748b;">
+          <span class="mi mi-sm">info</span>
+          <span>v8.1 — <span id="adminDate"></span></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="page-main" style="margin-left:240px;">
+      <!-- TOPBAR -->
+      <header class="topbar-custom" style="position:sticky;top:0;z-index:100;padding:12px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <h2 style="margin:0;font-size:1.2rem;font-weight:700;" id="sectionTitle">Tableau de bord</h2>
+            <span class="badge badge-success" style="font-size:0.65rem;padding:2px 8px;border-radius:20px;">EN LIGNE</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <span style="font-size:0.8rem;color:#94a3b8;" id="topbarClock"></span>
+            <button class="btn btn-sm" onclick="location.href='../index.html'" style="background:rgba(5,150,105,0.15);color:#10b981;border:1px solid rgba(5,150,105,0.3);border-radius:8px;font-size:0.8rem;">
+              <span class="mi mi-sm">open_in_new</span> App mobile
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- DASHBOARD SECTION -->
+      <div class="page-body" style="padding:24px;" id="dashboardSection">
+        <!-- KPI CARDS -->
+        <div class="row g-3 mb-4" id="kpiRow">
+          <div class="col-sm-6 col-xl-3">
+            <div class="kpi-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div class="kpi-icon" style="background:rgba(5,150,105,0.15);"><span class="mi mi-green">inventory_2</span></div>
+                <span class="badge badge-success" style="font-size:0.65rem;">MP</span>
+              </div>
+              <div class="kpi-value" id="kpiStockGrumes">—</div>
+              <div class="kpi-label">Grumes en stock</div>
+              <div class="kpi-change" id="kpiStockVol" style="color:#94a3b8;"></div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="kpi-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div class="kpi-icon" style="background:rgba(59,130,246,0.15);"><span class="mi mi-blue">precision_manufacturing</span></div>
+                <span class="badge badge-info" style="font-size:0.65rem;">A + B</span>
+              </div>
+              <div class="kpi-value" id="kpiProduction">—</div>
+              <div class="kpi-label">Pièces produites</div>
+              <div class="kpi-change" id="kpiGrumesSci" style="color:#94a3b8;"></div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="kpi-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div class="kpi-icon" style="background:rgba(245,158,11,0.15);"><span class="mi mi-amber">thermostat</span></div>
+                <span class="badge badge-warning" style="font-size:0.65rem;">LOTS</span>
+              </div>
+              <div class="kpi-value" id="kpiDryBatches">—</div>
+              <div class="kpi-label">Lots en séchage</div>
+              <div class="kpi-change" id="kpiDryTemp" style="color:#94a3b8;"></div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="kpi-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div class="kpi-icon" style="background:rgba(139,92,246,0.15);"><span class="mi" style="color:#8b5cf6;">check_circle</span></div>
+                <span class="badge badge-primary" style="font-size:0.65rem;">PF</span>
+              </div>
+              <div class="kpi-value" id="kpiPF">—</div>
+              <div class="kpi-label">Produits finis</div>
+              <div class="kpi-change" id="kpiPFVol" style="color:#94a3b8;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title"><span class="mi mi-sm mi-green">bar_chart</span> Production 7 jours</div>
+                <span class="badge badge-success" style="font-size:0.65rem;">TEMPS RÉEL</span>
+              </div>
+              <canvas id="prodChart" height="220"></canvas>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title"><span class="mi mi-sm mi-green">donut_large</span> Stock par essence</div>
+              </div>
+              <canvas id="essenceChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA TABLES ROW -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="data-card">
+              <div class="card-header">
+                <h3><span class="mi mi-sm mi-green">list_alt</span> Derniers OF</h3>
+                <span class="badge badge-success" style="font-size:0.65rem;" id="ofCount">0</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr><th>OF</th><th>Ligne</th><th>Qté</th><th>Statut</th></tr></thead>
+                  <tbody id="ofTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="data-card">
+              <div class="card-header">
+                <h3><span class="mi mi-sm mi-green">local_fire_department</span> Lots séchage</h3>
+                <span class="badge badge-warning" style="font-size:0.65rem;" id="dryCount">0</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr><th>Lot</th><th>Essence</th><th>Temp</th><th>Progression</th></tr></thead>
+                  <tbody id="dryTableBody"></tbody>
+                </table>
+      </div>
+    </div>
+
+    <!-- DATA RESET SECTION (hidden by default) -->
+    <div class="page-body" style="padding:24px;display:none;" id="donneesSection">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="data-card">
+            <div class="card-header">
+              <h3><span class="mi mi-sm mi-red">delete_sweep</span> Réinitialiser les données</h3>
+            </div>
+            <div style="padding:20px;">
+              <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:16px;">
+                Supprime toutes les données de test et remet l'app à zéro. Deux options selon votre besoin :
+              </p>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <button onclick="resetLocalData()" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:12px 16px;font-size:0.85rem;cursor:pointer;text-align:left;">
+                  <span class="mi mi-sm" style="vertical-align:middle;">phone_android</span>
+                  <strong>Reset local (cet appareil)</strong><br>
+                  <span style="font-size:0.75rem;color:#94a3b8;">Efface grumes, OF, stock, WIP de cet appareil uniquement</span>
+                </button>
+                <div style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 16px;font-size:0.85rem;">
+                  <span class="mi mi-sm" style="vertical-align:middle;">cloud_off</span>
+                  <strong>Reset Firestore (tous appareils)</strong><br>
+                  <span style="font-size:0.75rem;color:#94a3b8;">Via Firebase Console → Firestore Database → sélectionner chaque collection → Supprimer tous les documents.</span><br>
+                  <span style="font-size:0.75rem;color:#94a3b8;">Collections : raw, orders, wip, dry, stock, equip, maint, shifts, audit, planning, prod, disques, fardeaux, parts, stockItems, buildOrders.</span>
+                </div>
+              </div>
+              <div id="resetStatus" style="margin-top:12px;font-size:0.8rem;color:#94a3b8;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="data-card">
+            <div class="card-header">
+              <h3><span class="mi mi-sm mi-green">info</span> À savoir</h3>
+            </div>
+            <div style="padding:20px;font-size:0.85rem;color:#94a3b8;">
+              <p><strong style="color:#e2e8f0;">DISQUES_SEED</strong> : les 4 références de lames (650mm, 355mm, 210mm) sont les vraies configs de la scierie. Elles restent après reset car ce n'est pas des données de test.</p>
+              <p style="margin-top:8px;"><strong style="color:#e2e8f0;">Après le reset</strong> : l'app repasse en mode login. Les tables repartent vides, prêtes pour les vraies saisies production.</p>
+              <p style="margin-top:8px;"><strong style="color:#e2e8f0;">Sauvegarde</strong> : si vous voulez garder une copie avant reset, exportez les données via l'onglet Données de l'app mobile (bouton Export CSV/JSON).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+        <!-- BOTTOM ROW: EQUIPMENT + PERFORMANCE -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="data-card">
+              <div class="card-header">
+                <h3><span class="mi mi-sm mi-green">construction</span> État machines</h3>
+              </div>
+              <div style="padding:12px 16px;" id="equipSection"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="data-card">
+              <div class="card-header">
+                <h3><span class="mi mi-sm mi-green">speed</span> Performance lignes</h3>
+              </div>
+              <div style="padding:12px 16px;" id="perfSection"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="chart.min.js"></script>
+  <script>
+    /* ================================================================
+       CHARBEN ADMIN DASHBOARD — v8.1
+       Connects to same localStorage keys as main app
+       ================================================================ */
+
+    // ── Storage helpers ──
+    function load(key) {
+      try { return JSON.parse(localStorage.getItem(key)) || []; } catch(e) { return []; }
+    }
+    function loadObj(key) {
+      try { return JSON.parse(localStorage.getItem(key)) || {}; } catch(e) { return {}; }
+    }
+
+    // ── Date helpers ──
+    function todayKey() { return new Date().toISOString().slice(0, 10); }
+    function daysAgo(n) {
+      var d = new Date(); d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    }
+
+    // ── Clock ──
+    function updateClock() {
+      var el = document.getElementById('topbarClock');
+      if (el) el.textContent = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 30000);
+    updateClock();
+    document.getElementById('adminDate').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // ── Section navigation ──
+    function showSection(name) {
+      document.querySelectorAll('.sidebar-nav .nav-link').forEach(function(a) { a.classList.remove('active'); });
+      event.currentTarget.classList.add('active');
+      var titles = { dashboard: 'Tableau de bord', production: 'Production', stock: 'Stock', sechage: 'Semi-finis (WIP)', equipement: 'Équipements', equipe: 'Équipes', donnees: 'Données' };
+      document.getElementById('sectionTitle').textContent = titles[name] || name;
+      var dashboardEl = document.getElementById('dashboardSection');
+      var donneesEl = document.getElementById('donneesSection');
+      if (name === 'donnees') {
+        if (dashboardEl) dashboardEl.style.display = 'none';
+        if (donneesEl) donneesEl.style.display = 'block';
+      } else {
+        if (donneesEl) donneesEl.style.display = 'none';
+        if (dashboardEl) dashboardEl.style.display = 'block';
+      }
+    }
+
+    // ── Load data ──
+    var rawMaterials = load('charben_raw');
+    var orders = load('gd_orders_v6');
+    var wipProducts = load('charben_wip');
+    var finishedGoods = load('charben_stock');
+    var equipment = load('charben_equip');
+
+    // ── KPI: Stock Grumes ──
+    var mpStock = rawMaterials.filter(function(r) { return r.statut === 'EN_STOCK'; });
+    var mpVol = rawMaterials.reduce(function(s, r) {
+      if (r.statut !== 'EN_STOCK') return s;
+      return s + (parseFloat(r.volume) || 0);
+    }, 0);
+    document.getElementById('kpiStockGrumes').textContent = mpStock.length;
+    document.getElementById('kpiStockVol').textContent = mpVol.toFixed(1) + ' m\u00b3 en stock';
+
+    // ── KPI: Production ──
+    var prodCounters = loadObj('charben_prod_counters');
+    var todayProduced = 0;
+    var machinesReal = (prodCounters.A || prodCounters.B) ? ['A', 'B'] : Object.keys(prodCounters);
+    machinesReal.forEach(function(line) {
+      Object.keys(prodCounters[line] || {}).forEach(function(machine) {
+        todayProduced += prodCounters[line][machine] || 0;
+      });
+    });
+    // Grumes sciées aujourd'hui = line_launch avec validatedAt == today
+    var launch = loadObj('charben_line_launch');
+    var todayGrumes = 0;
+    Object.keys(launch).forEach(function(L) {
+      (launch[L]?.launched || []).forEach(function(item) {
+        if ((item.validatedAt || '').slice(0, 10) === todayKey()) todayGrumes++;
+      });
+    });
+    document.getElementById('kpiProduction').textContent = todayProduced || '—';
+    document.getElementById('kpiGrumesSci').textContent = todayGrumes + ' grumes sci\u00e9es aujourd\'hui';
+
+    // ── KPI: Séchage ──
+    var dryActive = wipProducts.filter(function(b) { return b.statut !== 'TRANSFERE'; });
+    var avgTemp = dryActive.length ? (dryActive.reduce(function(s, b) { return s + (parseFloat(b.temp) || 0); }, 0) / dryActive.length).toFixed(0) : '—';
+    document.getElementById('kpiDryBatches').textContent = dryActive.length;
+    document.getElementById('kpiDryTemp').textContent = dryActive.length + ' articles en WIP';
+
+    // ── KPI: PF ──
+    var pfCount = finishedGoods.reduce(function(s, f) { return s + (f.qte || 0); }, 0);
+    var pfVol = finishedGoods.reduce(function(s, f) { return s + (f.volume || 0); }, 0);
+    document.getElementById('kpiPF').textContent = pfCount || '—';
+    document.getElementById('kpiPFVol').textContent = pfVol.toFixed(1) + ' m³ en stock';
+
+    // ── Chart: Production 7 jours (grumes sciées via line_launch) ──
+    var prodDays = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var key = d.toISOString().slice(0, 10);
+      var dayLabel = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+      var count = 0;
+      Object.keys(launch).forEach(function(L) {
+        (launch[L]?.launched || []).forEach(function(item) {
+          if ((item.validatedAt || item.launchedAt || '').slice(0, 10) === key) count++;
+        });
+      });
+      prodDays.push({ label: dayLabel, count: count });
+    }
+
+    var prodCtx = document.getElementById('prodChart').getContext('2d');
+    new Chart(prodCtx, {
+      type: 'bar',
+      data: {
+        labels: prodDays.map(function(d) { return d.label; }),
+        datasets: [{
+          label: 'OF créés',
+          data: prodDays.map(function(d) { return d.count; }),
+          backgroundColor: 'rgba(5,150,105,0.6)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 6,
+          barThickness: 32
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(5,150,105,0.08)' }, ticks: { color: '#64748b', font: { size: 11 } } },
+          y: { grid: { color: 'rgba(5,150,105,0.08)' }, ticks: { color: '#64748b', font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+
+    // ── Chart: Stock par essence ──
+    var essences = {};
+    rawMaterials.filter(function(r) { return r.statut === 'EN_STOCK'; }).forEach(function(r) {
+      var e = r.essence || 'Inconnu';
+      essences[e] = (essences[e] || 0) + 1;
+    });
+    var essLabels = Object.keys(essences);
+    var essValues = essLabels.map(function(e) { return essences[e]; });
+    var essColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    var essCtx = document.getElementById('essenceChart').getContext('2d');
+    new Chart(essCtx, {
+      type: 'doughnut',
+      data: {
+        labels: essLabels,
+        datasets: [{
+          data: essValues,
+          backgroundColor: essColors.slice(0, essLabels.length),
+          borderColor: '#0f172a',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, padding: 12 } }
+        }
+      }
+    });
+
+    // ── Table: Derniers OF ──
+    var recentOrders = orders.slice().sort(function(a, b) {
+      return (b.date || '').localeCompare(a.date || '');
+    }).slice(0, 8);
+    document.getElementById('ofCount').textContent = orders.length + ' total';
+    var ofHtml = '';
+    recentOrders.forEach(function(o) {
+      var isDone = o.status === 'realise' || ((o.qty || 0) > 0 && (o.producedQty || 0) >= (o.qty || 0));
+      var statusClass = isDone ? 'badge-success' : (o.status === 'engage' ? 'badge-info' : 'badge-warning');
+      var statusLabel = isDone ? 'R\u00e9alis\u00e9' : (o.status === 'engage' ? 'Engag\u00e9' : 'Brouillon');
+      ofHtml += '<tr><td style="font-weight:600;">' + (o.orderNum || '—') + '</td><td>Ligne ' + (o.line || 'A') + '</td><td>' + (o.producedQty || 0) + '/' + (o.qty || 0) + ' pcs</td><td><span class="badge ' + statusClass + '" style="font-size:0.65rem;padding:2px 8px;border-radius:20px;">' + statusLabel + '</span></td></tr>';
+    });
+    document.getElementById('ofTableBody').innerHTML = ofHtml || '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px;">Aucun OF</td></tr>';
+
+    // ── Table: Lots séchage ──
+    var activeDrying = wipProducts.filter(function(b) { return b.statut !== 'TRANSFERE'; });
+    document.getElementById('dryCount').textContent = activeDrying.length + ' en WIP';
+    var dryHtml = '';
+    activeDrying.forEach(function(b) {
+      var progress = b.progress || 0;
+      var tempC = (parseFloat(b.temp) || 0).toFixed(0);
+      dryHtml += '<tr><td style="font-weight:600;">' + (b.batchNum || '—') + '</td><td>' + (b.species || '—') + '</td><td>' + tempC + '\u00b0C</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar-custom" style="flex:1;"><div class="fill" style="width:' + progress + '%;"></div></div><span style="font-size:0.75rem;color:#94a3b8;">' + progress + '%</span></div></td></tr>';
+    });
+    document.getElementById('dryTableBody').innerHTML = dryHtml || '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px;">Aucun produit en WIP</td></tr>';
+
+    // ── Equipment status ──
+    var equipHtml = '';
+    var machines = equipment.filter(function(e) { return e.type === 'machine' || !e.type; });
+    if (machines.length === 0) {
+      equipHtml = '<div style="text-align:center;color:#64748b;padding:20px;">Aucun \u00e9quipement</div>';
+    } else {
+      machines.slice(0, 6).forEach(function(m) {
+        var st = m.status || 'actif';
+        var c = st === 'actif' ? '#10b981' : (st === 'maintenance' ? '#f59e0b' : '#ef4444');
+        var lbl = st === 'actif' ? 'Actif' : (st === 'maintenance' ? 'Maintenance' : 'Hors service');
+        var rgb = st === 'actif' ? '16,185,129' : (st === 'maintenance' ? '245,158,11' : '239,68,68');
+        equipHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(5,150,105,0.08);"><div style="display:flex;align-items:center;gap:10px;"><div style="width:8px;height:8px;border-radius:50%;background:' + c + ';"></div><span style="font-size:0.85rem;font-weight:500;">' + (m.name || '—') + '</span></div><span class="badge" style="font-size:0.65rem;background:rgba(' + rgb + ',0.15);color:' + c + ';border:1px solid ' + c + '33;">' + lbl + '</span></div>';
+      });
+    }
+    document.getElementById('equipSection').innerHTML = equipHtml;
+
+    // ── Performance lignes ──
+    var lineA = orders.filter(function(o) { return (o.line || 'A') === 'A'; });
+    var lineB = orders.filter(function(o) { return o.line === 'B'; });
+    function isDone(o) { return o.status === 'realise' || ((o.qty || 0) > 0 && (o.producedQty || 0) >= (o.qty || 0)); }
+    var realizedA = lineA.filter(isDone).length;
+    var realizedB = lineB.filter(isDone).length;
+    var pctA = lineA.length ? Math.round((realizedA / lineA.length) * 100) : 0;
+    var pctB = lineB.length ? Math.round((realizedB / lineB.length) * 100) : 0;
+
+    var perfHtml = '';
+    ['A', 'B'].forEach(function(line) {
+      var total = line === 'A' ? lineA.length : lineB.length;
+      var realized = line === 'A' ? realizedA : realizedB;
+      var pct = line === 'A' ? pctA : pctB;
+      perfHtml += '<div style="margin-bottom:16px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:0.85rem;font-weight:600;">Ligne ' + line + '</span><span style="font-size:0.8rem;color:#94a3b8;">' + realized + ' / ' + total + ' OF (' + pct + '%)</span></div><div class="progress-bar-custom"><div class="fill" style="width:' + pct + '%;"></div></div></div>';
+    });
+    document.getElementById('perfSection').innerHTML = perfHtml;
+
+    // ── Auto-refresh every 30s ──
+    setInterval(function() { location.reload(); }, 30000);
+
+    // ── Reset Data utilities ──
+    function resetLocalData() {
+      if (!confirm('Effacer TOUTES les données locales de cet appareil ?\n\nCette action supprime grumes, OF, WIP, stock, planning, audit — tout.\nL\'app redémarrera avec des tableaux vides.')) return;
+      var keys = [
+        'charben_raw','charben_wip','charben_stock','charben_equip','charben_maint',
+        'charben_shifts','charben_audit','charben_qc','charben_planning','charben_prodplan',
+        'charben_disques','charben_fardeaux','charben_line_launch','charben_prod_counters',
+        'charben_line_objectives','charben_build_orders','charben_cqp_grades','charben_cqp_wood',
+        'charben_cqp_trace','charben_cqp_stress','charben_cqp_byproducts','charben_cqp_blades',
+        'charben_session','charben_role_' + (JSON.parse(localStorage.getItem('charben_session')||'{}').uid||''),
+        'gd_stock_v6','gd_orders_v6','gd_counter_v6','gd_theme_v6','gd_notepad_v6',
+        'gd_saved_queries_v6','gd_cales_machines_v6','gd_cales_regul_v6','charben_disques_regul',
+        'charben_auto_sync','charben_gamme_essence'
+      ];
+      keys.forEach(function(k) { if (k) try { localStorage.removeItem(k); } catch(e) {} });
+      // Purge file IndexedDB offline
+      try { indexedDB.deleteDatabase('charben_offline_queue'); } catch(e) {}
+      alert('Données locales effacées. L\'app va redémarrer.');
+      location.href = '../index.html';
+    }
+  </script>
+</body>
+</html>

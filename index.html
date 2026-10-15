@@ -1,0 +1,1181 @@
+﻿<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:;">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Gestion des Découpes — v8.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='5'%20fill='%232D5A30'/%3E%3Cpath%20d='M4%2016l6-9%204%205%204-3%202%207z'%20fill='%23fff'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2D5A30">
+<meta name="app-version" content="1.2.0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap">
+
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body>
+
+<!-- DIAGNOSTIC FLOATING PANEL — HIDDEN BY DEFAULT -->
+<div id="diagPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:50vh;overflow-y:auto;background:rgba(0,0,0,0.95);color:#0f0;font-family:'Courier New',monospace;font-size:11px;padding:8px 12px;z-index:99999;border-top:2px solid #f00;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <b style="color:#f00;">DIAGNOSTIC RESEAU</b>
+    <div>
+      <button onclick="diagTest()" style="background:#0a0;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;">Relancer</button>
+      <button onclick="diagCopyReport()" style="background:#f00;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;">COPIER LE RAPPORT</button>
+      <button onclick="toggleDiagPanel()" style="background:#333;color:#fff;border:1px solid #666;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">✕</button>
+    </div>
+  </div>
+  <pre id="diagContent" style="margin:0;white-space:pre-wrap;word-break:break-all;">Chargement du diagnostic...</pre>
+</div>
+<button id="diagToggleBtn" onclick="toggleDiagPanel()" style="display:none;position:fixed;bottom:4px;right:4px;background:#333;color:#fff;border:none;border-radius:50%;width:0;height:0;z-index:100000;cursor:pointer;opacity:0;pointer-events:none;"></button>
+
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay visible" id="authOverlay">
+  <canvas id="authParticles"></canvas>
+  <div class="auth-bg-art">
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="artGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.6" />
+          <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.1" />
+        </linearGradient>
+      </defs>
+      <path d="M200,60 C280,60 340,120 340,200 C340,280 280,340 200,340 C120,340 60,280 60,200 C60,140 100,80 160,65" stroke="url(#artGrad)" stroke-width="1.2" fill="none" opacity="0.7"/>
+      <path d="M180,80 C260,90 320,150 310,230 C300,300 240,340 170,330 C100,320 55,260 70,190 C85,120 130,75 180,80Z" stroke="url(#artGrad)" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <path d="M220,70 C300,100 340,180 310,260 C280,340 200,360 130,320 C60,280 40,200 80,130 C120,60 180,55 220,70Z" stroke="url(#artGrad)" stroke-width="0.6" fill="none" opacity="0.35"/>
+      <circle cx="200" cy="200" r="140" stroke="url(#artGrad)" stroke-width="0.5" fill="none" opacity="0.2"/>
+      <circle cx="200" cy="200" r="100" stroke="url(#artGrad)" stroke-width="0.4" fill="none" opacity="0.15"/>
+    </svg>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="logo charben industrie.webp" alt="Charben Industrie" class="auth-logo-img" loading="eager">
+    </div>
+    <h2>Bon retour !</h2>
+    <p class="auth-sub">Connectez-vous à votre espace de travail</p>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form active" id="formLogin">
+      <form id="loginForm" onsubmit="handleLogin();return false;">
+      <div class="auth-field">
+        <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg></span>
+        <div class="input-wrap"><input type="email" id="loginEmail" placeholder=" " autocomplete="email" name="email"><label class="input-label">Adresse email</label></div>
+      </div>
+      <div class="auth-field">
+        <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
+        <div class="input-wrap">
+          <input type="password" id="loginPassword" placeholder=" " autocomplete="current-password" name="password">
+          <label class="input-label">Mot de passe</label>
+        </div>
+        <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePassword()" aria-label="Afficher mot de passe">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+
+      <div class="auth-row">
+        <label class="auth-check">
+          <input type="checkbox" id="rememberMe">
+          <span>Se souvenir de moi</span>
+        </label>
+      </div>
+
+      <button class="auth-btn" id="loginBtn" type="submit" aria-label="Se connecter">
+        <span class="btn-text">Se connecter</span>
+        <span class="btn-loading"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg></span>
+        <span class="btn-shimmer"></span>
+      </button>
+      </form>
+      <div class="auth-error" id="loginError"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="app-container">
+  
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="sync-banner no-print" id="syncBanner"></div>
+
+  
+  <main class="screen active" id="screenProduction" aria-label="Production — sciage, séchage, WIP">
+    <div class="screen-scroll">
+
+      <div class="tab-switcher" role="tablist">
+        <button class="active" onclick="switchProdTab('Lignes')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.6"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l1.7 1.7"/></svg>Sciage</button>
+        <button onclick="switchProdTab('Sechage')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Semi-finis</button>
+        <button onclick="switchProdTab('Fiche')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>Fiche</button>
+      </div>
+
+      <div class="prod-tab-content" id="prodTabLignes">
+        <div class="segmented" style="margin-bottom:16px;">
+          <button type="button" class="active" id="procSubBtnA" onclick="switchProcSubTab('A')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l6 9-6 9-6-9z"/></svg>Ligne A</button>
+          <button type="button" id="procSubBtnB" onclick="switchProcSubTab('B')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l6 9-6 9-6-9z"/></svg>Ligne B</button>
+        </div>
+
+        <div class="proc-subtab" id="procSubA" style="display:block;">
+          <div id="ligneAContent"></div>
+        </div>
+
+        <div class="proc-subtab" id="procSubB" style="display:none;">
+          <div id="ligneBContent"></div>
+        </div>
+
+        <div id="prodAdminTools" style="display:none;">
+          <details class="card" style="margin-top:16px;">
+            <summary style="cursor:pointer;padding:10px 14px;font-size:12px;font-weight:700;list-style:none;color:var(--text-muted);">🪚 Disques</summary>
+            <div style="padding:0 14px 14px;">
+              <div id="prodDisquesStock"></div>
+            </div>
+          </details>
+          <details class="card" style="margin-top:10px;">
+            <summary style="cursor:pointer;padding:10px 14px;font-size:12px;font-weight:700;list-style:none;color:var(--text-muted);">📏 Cales</summary>
+            <div style="padding:0 14px 14px;">
+              <div id="calesStockTable"></div>
+              <div id="calesRegul" style="margin-top:12px;"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="prod-tab-content" id="prodTabSechage" style="display:none;">
+        <section class="card" style="margin-bottom:16px;">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h4 style="font-size:14px;font-weight:700;margin:0;">Produits semi-finis — Matrice de sciage temps réel</h4>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select class="form-input" id="wipMatrixEssence" onchange="renderWipMatrix()" style="width:auto;padding:5px 8px;font-size:11px;">
+                <option value="all">Toutes essences</option>
+                <option value="Pin">Pin</option>
+                <option value="Épicéa">Épicéa</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" onclick="renderWipMatrix()" data-perm="sechage:view" title="Actualiser">↻</button>
+            </div>
+          </div>
+          <div id="wipMatrixKpi" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
+          <div id="wipMatrix" style="overflow-x:auto;"></div>
+        </section>
+        <section class="card">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Inventaire produits semi-finis</h4>
+          <div class="filter-bar">
+            <input type="text" class="form-input" id="wipFilterSearch" placeholder="Rechercher..." oninput="renderWipList()">
+            <select class="form-input" id="wipFilterStatus" onchange="renderWipList()">
+              <option value="all">Tous les statuts</option>
+              <option value="EN_WIP">En WIP</option>
+              <option value="TRANSFERE">Transféré PF</option>
+            </select>
+          </div>
+          <div id="wipList"></div>
+        </section>
+      </div>
+
+      <div class="prod-tab-content" id="prodTabFiche" style="display:none;">
+        <div id="prodTabFicheBody"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- SCREEN: TRAÇABILITÉ (temps réel données locales Firestore) -->
+  <main class="screen" id="screenTrace" aria-label="Traçabilité — analyse de production">
+    <div class="screen-scroll trace-page">
+      <!-- Barre d'état & synchro (header global, au-dessus des onglets) -->
+      <div class="tp-statusbar" id="traceSyncBanner">
+        <div class="tp-status-left">
+          <span class="sync-pulse" id="syncPulse"></span>
+          <div class="tp-status-info">
+            <div class="tp-status-title" id="syncBannerTitle">Données locales • En ligne</div>
+            <div class="tp-status-sub" id="syncBannerSub">Synchro : — · — lots</div>
+            <div id="traceSyncStatus" class="rp-status tp-status-sr" role="status" aria-live="polite"></div>
+            <div id="syncHelp" class="tp-status-help" role="status" aria-live="polite" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="tp-status-actions">
+          <span class="tp-sync-warn" id="syncBannerWarn" aria-live="polite"></span>
+          <button type="button" class="tp-sync-btn sync-btn" id="syncBtn" data-rp-sync onclick="syncLotsRapports()" aria-label="Synchroniser maintenant (sorties de sciage + lots de séchage)">
+            <span class="sync-ico">🔄</span>
+            <span>Synchroniser</span>
+          </button>
+          <button type="button" class="tp-sync-btn tp-sync-btn--danger sync-btn" id="syncRetryBtn" onclick="syncRetryNow()" style="display:none;" aria-label="Réessayer la synchronisation maintenant (données conservées localement)">
+            <span class="sync-ico">🔁</span>
+            <span>Réessayer maintenant</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Titre de la vue -->
+      <div class="tp-head">
+        <div>
+          <h1 class="tp-title">Analyse de production</h1>
+          <p class="tp-subtitle">Mouvements réels · brut · utile · chutes · rendement</p>
+        </div>
+        <button type="button" class="tp-pdf-btn" onclick="ReportGenerator.generateFromForm()" aria-label="Générer le rapport PDF">📄 Générer le PDF</button>
+      </div>
+
+      <!-- 4 KPI (toujours visibles, au-dessus des onglets) -->
+      <div id="traceProductionKpis" aria-live="polite"></div>
+
+      <!-- Barre d'onglets -->
+      <div class="tp-tabs" role="tablist" aria-label="Sections de la traçabilité">
+        <button type="button" id="traceTabBtn-ov" class="tp-tab is-active" role="tab" aria-selected="true" aria-controls="tracePanel-ov" onclick="traceSwitchTab('ov')">
+          📊 Synthèse &amp; Ateliers
+        </button>
+        <button type="button" id="traceTabBtn-tb" class="tp-tab" role="tab" aria-selected="false" aria-controls="tracePanel-tb" onclick="traceSwitchTab('tb')">
+          🗂️ Tables de données (11 modules)
+        </button>
+        <button type="button" id="traceTabBtn-rp" class="tp-tab" role="tab" aria-selected="false" aria-controls="tracePanel-rp" onclick="traceSwitchTab('rp')">
+          ⚙️ Périodes &amp; Rapports
+        </button>
+      </div>
+
+      <div id="traceStatus" class="rp-status trace-status-sr" role="status" aria-live="polite"></div>
+
+      <!-- Panneau 1 : Synthèse & Ateliers -->
+      <div class="tp-panel is-active" id="tracePanel-ov" role="tabpanel" aria-labelledby="traceTabBtn-ov">
+        <div id="traceKpis"></div>
+        <div id="traceCharts"></div>
+        <section class="tp-card tp-search-card">
+          <div class="tp-sec-head"><h4 class="tp-sec-title">🔎 Recherche &amp; parcours produit</h4></div>
+          <div id="traceSearch"></div>
+          <div id="traceParcours"></div>
+        </section>
+      </div>
+
+      <!-- Panneau 2 : Tables de données (11 modules) -->
+      <div class="tp-panel" id="tracePanel-tb" role="tabpanel" aria-labelledby="traceTabBtn-tb" hidden>
+        <div id="dataTableChips" class="tp-chips"></div>
+        <div id="dataTableContainer" class="tp-table"></div>
+      </div>
+
+      <!-- Panneau 3 : Périodes & Rapports -->
+      <div class="tp-panel" id="tracePanel-rp" role="tabpanel" aria-labelledby="traceTabBtn-rp" hidden>
+        <div class="tp-card">
+          <div class="tp-sec-head"><h4 class="tp-sec-title">⚙️ Rapport PDF — Périodes</h4></div>
+          <div class="trace-report-bar tp-reportbar" aria-label="Génération de rapports PDF">
+            <span class="trace-report-ico" aria-hidden="true">📄</span>
+            <span class="trace-report-title">Rapport PDF</span>
+            <label class="trace-report-field">
+              <span class="trace-report-lbl">Période</span>
+              <select id="traceReportMode" class="trace-report-input" onchange="ReportGenerator.syncForm()" aria-label="Type de période du rapport">
+                <option value="daily">Journalier</option>
+                <option value="weekly">Hebdomadaire (ISO)</option>
+                <option value="monthly">Mensuel</option>
+              </select>
+            </label>
+            <label class="trace-report-field" id="traceReportDateWrap">
+              <span class="trace-report-lbl">Date</span>
+              <input type="date" id="traceReportDate" class="trace-report-input" aria-label="Date du rapport journalier">
+            </label>
+            <label class="trace-report-field" id="traceReportWeekWrap" hidden>
+              <span class="trace-report-lbl">N° semaine</span>
+              <input type="number" id="traceReportWeek" class="trace-report-input" min="1" max="53" step="1" aria-label="Numéro de semaine ISO">
+            </label>
+            <label class="trace-report-field" id="traceReportMonthWrap" hidden>
+              <span class="trace-report-lbl">Mois</span>
+              <select id="traceReportMonth" class="trace-report-input" aria-label="Mois du rapport">
+                <option value="1">Janvier</option>
+                <option value="2">Février</option>
+                <option value="3">Mars</option>
+                <option value="4">Avril</option>
+                <option value="5">Mai</option>
+                <option value="6">Juin</option>
+                <option value="7">Juillet</option>
+                <option value="8">Août</option>
+                <option value="9">Septembre</option>
+                <option value="10">Octobre</option>
+                <option value="11">Novembre</option>
+                <option value="12">Décembre</option>
+              </select>
+            </label>
+            <label class="trace-report-field" id="traceReportYearWrap" hidden>
+              <span class="trace-report-lbl">Année</span>
+              <input type="number" id="traceReportYear" class="trace-report-input" min="2000" max="2100" step="1" aria-label="Année">
+            </label>
+            <button type="button" class="btn btn-sm btn-primary trace-report-go" onclick="ReportGenerator.generateFromForm()" aria-label="Générer le rapport PDF">Générer le PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  
+  <main class="screen" id="screenSettings" aria-label="Paramètres — configuration et utilisateurs">
+    <div class="screen-scroll">
+
+      <!-- Mon Compte -->
+      <div id="accountSection" style="margin-bottom:16px;"></div>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="section-header">
+          <h4>Paramètres divers</h4>
+        </div>
+        <div id="miscSettings"></div>
+      </section>
+
+      <!-- Classes de grumes (Plan Q) -->
+      <section class="card" style="margin-bottom:16px;">
+        <div class="section-header">
+          <h4>Classes de grumes (C1, C2, C3)</h4>
+        </div>
+        <div id="grumeClassesWrap"></div>
+      </section>
+
+      <!-- Gestion utilisateurs (admin only) -->
+      <section class="user-manage-section no-print" id="userManageSection" style="display:none;"></section>
+    </div>
+  </main>
+
+  <main class="screen" id="screenMp" aria-label="Matières premières — grumes">
+    <div class="screen-scroll">
+
+      <section class="card" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Enregistrement unitaire</h4>
+        <div id="gdsMpAutoHint" style="padding:8px 10px;background:var(--glass-bg);backdrop-filter:blur(4px);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted);margin-bottom:12px;">
+          Référence générée automatiquement (numérotation continue des grumes).
+        </div>
+        <div class="form-group">
+          <label class="form-label">Essence</label>
+<select class="form-input" id="gdsMpEssence">
+            <option value="Pin">Pin</option>
+            <option value="Épicéa">Épicéa</option>
+          </select>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Longueur (m)</label>
+            <input type="number" class="form-input" id="gdsMpLongueur" placeholder="Ex: 4.5" min="0.1" step="0.01" oninput="previewVolumeMP()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Diamètre médian (cm)</label>
+            <input type="number" class="form-input" id="gdsMpDiametre" placeholder="Ex: 50" min="1" step="0.1" oninput="previewVolumeMP()">
+          </div>
+        </div>
+        <div id="gdsMpCapacityAlert" class="warning-box">
+          ⚠ Capacité de sciage max : grume ≤ <b>56 cm / 560 mm</b> sur les lignes A/B. Toute grume de dimension supérieure sera rejetée à l'enregistrement.
+        </div>
+        <div style="padding:10px;background:var(--glass-bg);backdrop-filter:blur(4px);border-radius:var(--radius-sm);font-size:13px;text-align:center;margin-bottom:10px;border:1px solid var(--glass-border);">
+          Volume estimé : <strong id="gdsMpVolumePreview">—</strong> m³
+          <div style="font-size:11px;color:var(--text-muted);">V = π × r² × L</div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addGrume()" data-perm="grumes:add">Enregistrer la grume</button>
+        <div id="gdsMpMsg" style="margin-top:10px;font-size:12px;"></div>
+      </section>
+
+      <section class="card">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Inventaire des grumes</h4>
+        <div id="gdsMpStats"></div>
+        <div class="filter-bar">
+          <input type="text" class="form-input" id="gdsMpFilter" placeholder="Rechercher..." oninput="renderGrumes()">
+<select class="form-input" id="gdsMpFilterEssence" onchange="renderGrumes()">
+            <option value="all">Toutes essences</option>
+            <option value="Pin">Pin</option>
+            <option value="Épicéa">Épicéa</option>
+            <option value="Chêne">Chêne</option>
+          </select>
+          <select class="form-input" id="gdsMpFilterStatut" onchange="renderGrumes()">
+            <option value="all">Tous les états</option>
+            <option value="EN_STOCK" selected>Disponible</option>
+            <option value="EN_COURSE">Affectée / sciage</option>
+            <option value="CONSOMME">Sciée</option>
+          </select>
+        </div>
+        <div id="gdsMpList"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <main class="screen" id="screenPf" aria-label="Produits finis — stock et expéditions">
+    <div class="screen-scroll">
+
+      <section class="card" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">📦 Fardeaux — stock prêt commercialisation</h4>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.6;">Un fardeau regroupe des pièces issues d'un lot de séchage. Chaque fardeau reçoit un code et un QR code (scan → fiche détaillée). La vente d'un fardeau déstocke l'ensemble en une action.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="btn btn-sm btn-primary" onclick="showFardeauForm()" data-perm="grumes:add">+ Nouveau fardeau</button>
+          <button class="btn btn-sm btn-secondary" onclick="openFardeauScanner()" data-perm="grumes:scan" title="Scanner un QR fardeau">▦ Scanner</button>
+        </div>
+        <div id="frdRecap"></div>
+        <div class="filter-bar">
+          <input type="text" class="form-input" id="frdFilter" placeholder="Rechercher fardeau..." oninput="renderFardeauxList()">
+          <select class="form-input" id="frdFilterStatut" onchange="renderFardeauxList()">
+            <option value="all">Tous statuts</option>
+            <option value="EN_STOCK">En stock</option>
+            <option value="VENDU">Vendu</option>
+          </select>
+        </div>
+        <div id="frdList"></div>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Pièces en vrac</h4>
+        <div class="form-group">
+          <label class="form-label">Type de produit</label>
+          <select class="form-input" id="gdsPfType">
+            <option value="Planche">Planche</option>
+            <option value="Madrier">Madrier</option>
+            <option value="Chevron">Chevron</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Essence</label>
+<select class="form-input" id="gdsPfEssence">
+            <option value="Pin">Pin</option>
+            <option value="Épicéa">Épicéa</option>
+          </select>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Épaisseur (mm)</label>
+            <input type="number" class="form-input" id="gdsPfEp" placeholder="25" min="1" oninput="previewVolumePF()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Largeur (mm)</label>
+            <input type="number" class="form-input" id="gdsPfLarg" placeholder="150" min="1" oninput="previewVolumePF()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Longueur (mm)</label>
+            <input type="number" class="form-input" id="gdsPfLong" placeholder="2000" min="1" oninput="previewVolumePF()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantité (pièces)</label>
+          <input type="number" class="form-input" id="gdsPfQte" placeholder="10" min="1" value="1" oninput="previewVolumePF()">
+        </div>
+        <div style="padding:10px;background:var(--glass-bg);backdrop-filter:blur(4px);border-radius:var(--radius-sm);font-size:13px;text-align:center;margin-bottom:10px;border:1px solid var(--glass-border);">
+          Volume total : <strong id="gdsPfVolumePreview">—</strong> m³
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addProduitFini()" data-perm="stock_pf:add">Ajouter en vrac</button>
+        <div id="gdsPfMsg" style="margin-top:10px;font-size:12px;"></div>
+      </section>
+
+      <section class="card">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Inventaire pièces en vrac</h4>
+        <div id="gdsPfRecap"></div>
+        <div class="filter-bar">
+          <input type="text" class="form-input" id="gdsPfFilter" placeholder="Rechercher..." oninput="renderProduitsFinis()">
+          <select class="form-input" id="gdsPfFilterType" onchange="renderProduitsFinis()">
+            <option value="all">Tous</option>
+            <option value="Planche">Planche</option>
+            <option value="Madrier">Madrier</option>
+            <option value="Chevron">Chevron</option>
+          </select>
+<select class="form-input" id="gdsPfFilterEssence" onchange="renderProduitsFinis()">
+            <option value="all">Toutes</option>
+            <option value="Pin">Pin</option>
+            <option value="Épicéa">Épicéa</option>
+          </select>
+        </div>
+        <div id="gdsPfList"></div>
+      </section>
+
+      </div>
+  </main>
+
+  
+  <main class="screen" id="screenEquip" aria-label="Équipements — machines et maintenance">
+    <div class="screen-scroll">
+
+      <div class="tab-switcher" style="margin-bottom:16px;" role="tablist">
+        <button data-tab="disques" class="active" onclick="switchEquipTab('disques')">🪚 Disques</button>
+        <button data-tab="cales" onclick="switchEquipTab('cales')">📏 Cales</button>
+      </div>
+
+      <div class="eq-tab-panel" id="equipTabDisques">
+
+        <section class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="font-size:14px;font-weight:700;">Stock de disques par machine</h4>
+            <button class="btn btn-sm btn-secondary" onclick="navigateTo('disques')">Ouvrir l'écran Disques</button>
+          </div>
+          <div id="equipDisquesStockTable"></div>
+        </section>
+
+      </div>
+
+      <div class="eq-tab-panel" id="equipTabCales" style="display:none;">
+
+        <section class="card">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Stock de cales par machine — kits dédiés</h4>
+          <div id="calesStockTable"></div>
+        </section>
+
+        <section class="card" style="margin-top:16px;">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Régularisation du stock</h4>
+          <div id="calesRegul"></div>
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+  
+  <main class="screen" id="screenDisques" aria-label="Disques et lames de sciage">
+    <div class="screen-scroll">
+
+      <section class="card" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Stock de disques par machine</h4>
+        <div id="disquesStockTable"></div>
+      </section>
+
+      <section class="card">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Nouvelle référence de disque</h4>
+        <div class="form-group">
+          <label class="form-label">Référence</label>
+          <input type="text" class="form-input" id="dnrRef" placeholder="Ex: 450 x 3,2 x 2,5 x 50 x 40+4">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select class="form-input" id="dnrType">
+              <option value="secondaire">Secondaire</option>
+              <option value="principale">Principale</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Diamètre (mm)</label>
+            <input type="number" class="form-input" id="dnrDiam" placeholder="Ex: 450">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Quantité initiale (magasin)</label>
+            <input type="number" class="form-input" id="dnrQte" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Seuil d'alerte stock</label>
+            <input type="number" class="form-input" id="dnrSeuil" value="2" min="0">
+          </div>
+        </div>
+            <button class="btn btn-secondary btn-block" onclick="addDisqueRef()" data-perm="reglages:add">Ajouter la référence</button>
+        <div id="dnrMsg" style="margin-top:10px;font-size:12px;"></div>
+      </section>
+    </div>
+  </main>
+
+  
+
+  
+  <main class="screen" id="screenPlanning" aria-label="Planning — ordres de fabrication">
+    <div class="screen-scroll">
+      <div class="tab-switcher" id="planTabSwitcher" role="tablist">
+        <button onclick="switchPlanTab('tasks')">Tâches</button>
+        <button class="active" onclick="switchPlanTab('of')">Ordre de production</button>
+        <button onclick="switchPlanTab('agenda')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 15h6"/></svg>Agenda</button>
+      </div>
+
+      <div id="planTabTasks" style="display:none;">
+
+      <section class="card" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Nouvelle tâche</h4>
+        <div class="form-group">
+          <label class="form-label">Tâche</label>
+          <input type="text" class="form-input" id="planTitle" placeholder="Ex : Réception grumes, Livraison chantier...">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" id="planDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heure</label>
+            <input type="time" class="form-input" id="planTime">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Affecté à</label>
+            <select class="form-input" id="planAssign">
+              <option value="Ligne A">Ligne A</option>
+              <option value="Ligne B">Ligne B</option>
+              <option value="Séchage">Séchage</option>
+              <option value="Bureau">Bureau</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priorité</label>
+            <select class="form-input" id="planPriority">
+              <option value="Basse">Basse</option>
+              <option value="Moyenne" selected>Moyenne</option>
+              <option value="Haute">Haute</option>
+              <option value="Urgente">Urgente</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input type="text" class="form-input" id="planNotes" placeholder="Remarques...">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addPlanningTask()" data-perm="planning:create">Enregistrer</button>
+        <div id="planningMsg" style="margin-top:10px;font-size:12px;"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h4>Tâches planifiées</h4>
+        </div>
+        <div id="planningList" aria-live="polite"></div>
+      </section>
+
+      </div>
+
+      <div id="planTabOf">
+        <details id="gammeDimensions" class="card no-print" style="margin-bottom:12px;padding:0;overflow:hidden;">
+          <summary style="cursor:pointer;padding:10px 14px;font-size:12px;font-weight:700;list-style:none;">🌲 Gamme dimensions standard <span style="font-weight:600;color:var(--text-muted);">(SB = Side Board · CC = Center)</span>
+            <select id="gammeEssenceSel" onclick="event.stopPropagation();" onchange="gammeEssenceChange()" style="float:right;font-size:11px;font-weight:600;padding:4px 8px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);"></select>
+          </summary>
+          <div id="gammePinTable" style="padding:0 14px 12px;overflow-x:auto;"></div>
+          <div id="gammeSuggestions" style="padding:0 14px 14px;border-top:1px solid var(--border-color);"></div>
+        </details>
+
+        <details class="card" open style="margin-bottom:12px;">
+          <summary style="cursor:pointer;padding:12px 16px;font-size:13px;font-weight:700;list-style:none;">Nouvel ordre de production</summary>
+          <div style="padding:0 16px 16px;">
+
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <div class="of-step-badge" style="background:var(--accent-primary);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">1</div>
+              <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Configuration</span>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Essence</label>
+                <select class="form-input" id="ppEssence" onchange="onPpEssenceChange()"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ligne</label>
+                <div class="segmented" style="width:100%;">
+                  <button type="button" class="active" id="ppLineBtnA" style="flex:1;" onclick="selectPpLine('A')">Ligne A</button>
+                  <button type="button" id="ppLineBtnB" style="flex:1;" onclick="selectPpLine('B')">Ligne B</button>
+                </div>
+                <input type="hidden" id="ppLine" value="A">
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
+              <div class="of-step-badge" style="background:#10b981;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">2</div>
+              <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Découpe CC — Centre</span>
+              <div id="ccGammeBadge" style="display:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"></div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label class="form-label">CC 1 — Épaisseur</label>
+                <select class="form-input" id="ppCentral" onchange="onThicknessChange('cc',1)"><option value="">Choisir l'essence d'abord</option></select>
+              </div>
+              <div class="form-group" id="ppCcWidthWrap1" style="display:none;">
+                <label class="form-label">CC 1 — Largeur A (principale)</label>
+                <select class="form-input" id="ppCcw1" onchange="onWidthChange()"><option value="">Choisir épaisseur</option></select>
+              </div>
+            </div>
+            <div class="form-group" id="ppCcWidthWrapB1" style="display:none;">
+              <label class="form-label">CC 1 — Largeur B (récupération)</label>
+              <select class="form-input" id="ppCcwB1" onchange="onWidthChange()"><option value="">Choisir épaisseur d'abord</option></select>
+            </div>
+            <div id="ccBadge1" style="display:none;font-size:11px;font-weight:600;margin-bottom:8px;padding:6px 10px;border-radius:8px;"></div>
+            <button type="button" class="btn btn-sm btn-ghost" id="ppAddCcBtn" onclick="togglePpSecondaryCc()" style="margin:4px 0 8px;">+ CC 2 secondaire</button>
+            <div id="ppSecondaryCc" style="display:none;">
+              <div class="form-grid form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">CC 2 — Épaisseur</label>
+                  <select class="form-input" id="ppCentral2" onchange="onThicknessChange('cc',2)"><option value="">Choisir</option></select>
+                </div>
+                <div class="form-group" id="ppCcWidthWrap2" style="display:none;">
+                  <label class="form-label">CC 2 — Largeur A</label>
+                  <select class="form-input" id="ppCcw2" onchange="onWidthChange()"><option value="">Choisir épaisseur</option></select>
+                </div>
+              </div>
+              <div class="form-group" id="ppCcWidthWrapB2" style="display:none;">
+                <label class="form-label">CC 2 — Largeur B (récupération)</label>
+                <select class="form-input" id="ppCcwB2" onchange="onWidthChange()"><option value="">Choisir épaisseur d'abord</option></select>
+              </div>
+              <div id="ccBadge2" style="display:none;font-size:11px;font-weight:600;margin-bottom:8px;padding:6px 10px;border-radius:8px;"></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
+              <div class="of-step-badge" style="background:#3b82f6;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">3</div>
+              <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Découpe SB — Latérale</span>
+              <div id="sbGammeBadge" style="display:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"></div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label class="form-label">SB 1 — Épaisseur</label>
+                <select class="form-input" id="ppSb1" onchange="onThicknessChange('sb',1)"><option value="">Choisir l'essence d'abord</option></select>
+              </div>
+              <div class="form-group" id="ppSbWidthWrap1" style="display:none;">
+                <label class="form-label">SB 1 — Largeur A (principale)</label>
+                <select class="form-input" id="ppSbw1" onchange="onWidthChange()"><option value="">Choisir épaisseur</option></select>
+              </div>
+            </div>
+            <div class="form-group" id="ppSbWidthWrapB1" style="display:none;">
+              <label class="form-label">SB 1 — Largeur B (récupération)</label>
+              <select class="form-input" id="ppSbwB1" onchange="onWidthChange()"><option value="">Choisir épaisseur d'abord</option></select>
+            </div>
+            <div id="sbBadge1" style="display:none;font-size:11px;font-weight:600;margin-bottom:8px;padding:6px 10px;border-radius:8px;"></div>
+            <button type="button" class="btn btn-sm btn-ghost" id="ppAddSbBtn" onclick="togglePpSecondarySb()" style="margin:4px 0 8px;">+ SB 2 secondaire</button>
+            <div id="ppSecondarySb" style="display:none;">
+              <div class="form-grid form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">SB 2 — Épaisseur</label>
+                  <select class="form-input" id="ppSb2" onchange="onThicknessChange('sb',2)"><option value="">Choisir</option></select>
+                </div>
+                <div class="form-group" id="ppSbWidthWrap2" style="display:none;">
+                  <label class="form-label">SB 2 — Largeur A</label>
+                  <select class="form-input" id="ppSbw2" onchange="onWidthChange()"><option value="">Choisir épaisseur</option></select>
+                </div>
+              </div>
+              <div class="form-group" id="ppSbWidthWrapB2" style="display:none;">
+                <label class="form-label">SB 2 — Largeur B (récupération)</label>
+                <select class="form-input" id="ppSbwB2" onchange="onWidthChange()"><option value="">Choisir épaisseur d'abord</option></select>
+              </div>
+              <div id="sbBadge2" style="display:none;font-size:11px;font-weight:600;margin-bottom:8px;padding:6px 10px;border-radius:8px;"></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;">
+              <div class="of-step-badge" style="background:#f59e0b;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">4</div>
+              <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Grume</span>
+            </div>
+            <div class="form-grid form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Diamètre (cm)</label>
+                <input type="number" class="form-input" id="ppDiameter" placeholder="Ex : 45" min="1" step="any" oninput="updatePpPrediction()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Longueur (m)</label>
+                <input type="number" class="form-input" id="ppLength" placeholder="Ex : 3.2" min="0.1" step="0.1" oninput="updatePpPrediction()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Volume</label>
+                <div id="ppVolumeResult" style="padding:8px 12px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--text-primary);min-height:36px;display:flex;align-items:center;">— m³</div>
+              </div>
+            </div>
+
+            <div style="margin:12px 0;padding:12px 14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.25);border-radius:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <div class="of-step-badge" style="background:#6366f1;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">⚡</div>
+                <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Simulation &amp; Prédiction de Sciage</span>
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Essence de la grume</label>
+                <select class="form-input" id="ppSimEssence" onchange="updatePpPrediction()">
+                  <option value="spruce" selected>Épicéa (Spruce)</option>
+                  <option value="pin">Pin (Pine)</option>
+                  <option value="ekki">Ekki</option>
+                  <option value="azobe">Azobé</option>
+                  <option value="other">Autre / Inconnue</option>
+                </select>
+              </div>
+              <div id="ppPredictionBox" style="font-size:12px;color:var(--text-muted);">Renseignez le diamètre et la longueur de la grume pour lancer la prédiction.</div>
+              <div id="ppPredBlock" style="display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);font-size:12px;color:#dc2626;font-weight:600;line-height:1.5;"></div>
+            </div>
+
+            <div class="form-grid form-grid-2" style="margin-top:12px;">
+              <div class="form-group">
+                <label class="form-label">Quantité (pièces)</label>
+                <input type="number" class="form-input" id="ppQty" placeholder="Ex : 10" min="1" step="1" oninput="updatePpPrediction()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date prévue</label>
+                <input type="date" class="form-input" id="ppDate">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes</label>
+              <input type="text" class="form-input" id="ppNotes" placeholder="Remarques...">
+            </div>
+            <input type="hidden" id="ppLaterals" value="">
+            <input type="hidden" id="ppMargin" value="10">
+            <div id="ppGrumePreview" style="display:none;padding:10px;background:var(--glass-bg);border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;border:1px solid var(--glass-border);text-align:center;">
+              <span id="ppGrumeText"></span>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="addProdPlan()" data-perm="planning:create">🚀 Enregistrer l'ordre</button>
+            <div id="ppMsg" style="margin-top:10px;font-size:12px;"></div>
+            <div id="ppSuggestBox"></div>
+          </div>
+        </details>
+        <details class="card" style="margin-top:12px;">
+          <summary style="cursor:pointer;padding:12px 16px;font-size:13px;font-weight:700;list-style:none;">Planning de production <span id="ppCount" style="font-weight:600;color:var(--text-muted);font-size:11px;"></span></summary>
+          <div style="padding:0 16px 16px;">
+            <div id="prodPlanList"></div>
+          </div>
+        </details>
+      </div>
+
+      <div id="planTabAgenda" style="display:none;">
+        <section class="card" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div class="of-step-badge" style="background:var(--accent-primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </div>
+            <span style="font-size:13px;font-weight:800;color:var(--text-primary);">Agenda smart</span>
+            <span style="font-size:10px;color:var(--text-muted);font-weight:600;">OF & tâches classés par date</span>
+          </div>
+
+          <div class="ag-toolbar">
+            <div class="ag-toolbar-group">
+              <button class="ag-nav-btn" type="button" onclick="agendaPrevMonth()" title="Mois précédent">◀</button>
+              <div class="ag-month-label" id="agendaMonthLabel">—</div>
+              <button class="ag-nav-btn" type="button" onclick="agendaNextMonth()" title="Mois suivant">▶</button>
+            </div>
+            <button class="ag-today-btn" type="button" onclick="agendaGoToday()">Aujourd'hui</button>
+          </div>
+
+          <div id="agendaProgress"></div>
+
+          <div class="ag-weekdays">
+            <div class="ag-weekday">Dim</div>
+            <div class="ag-weekday">Lun</div>
+            <div class="ag-weekday">Mar</div>
+            <div class="ag-weekday">Mer</div>
+            <div class="ag-weekday">Jeu</div>
+            <div class="ag-weekday">Ven</div>
+            <div class="ag-weekday">Sam</div>
+          </div>
+
+          <div id="agendaCalendarGrid" class="ag-grid"></div>
+
+          <div class="ag-legend">
+            <span><span class="ag-badge-dot" style="background:#3b82f6;"></span>Planifié</span>
+            <span><span class="ag-badge-dot" style="background:#f59e0b;"></span>Engagé</span>
+            <span><span class="ag-badge-dot" style="background:#059669;"></span>Réalisé</span>
+            <span>◀ ▶ Naviguer · Cliquer sur un jour pour voir les détails</span>
+          </div>
+        </section>
+
+        <div class="ag-layout">
+          <section class="card ag-main" style="margin-bottom:12px;">
+            <div id="agendaDayDetail"></div>
+          </section>
+
+          <section class="card" style="margin-bottom:12px;">
+            <div id="agendaSidebar"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+
+  <main class="screen dashboard-fullscreen" id="screenMenu" aria-label="Tableau de bord — KPIs et alertes">
+    <div class="screen-scroll">
+
+      <!-- Admin broadcast message banner -->
+      <div id="adminBroadcastBanner" class="admin-broadcast-banner" style="display:none;">
+        <i data-lucide="megaphone" style="width:14px;height:14px;"></i>
+        <span id="adminBroadcastText"></span>
+        <button class="admin-broadcast-close" onclick="dismissAdminBroadcast()" aria-label="Fermer">✕</button>
+      </div>
+
+      <section id="alertsSection" style="margin-bottom:16px;">
+        <div id="alertsPanel" aria-live="polite"></div>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="section-header">
+          <h4>KPI's</h4>
+          <button class="section-action" onclick="refreshDashboard()" data-perm="rendement:view">Actualiser</button>
+        </div>
+        <div id="dashboardKPIs" aria-live="polite"></div>
+      </section>
+
+
+
+    </div>
+  </main>
+
+  <!-- TOP APP BAR -->
+  <header class="top-bar no-print">
+    <div class="top-bar-brand">
+      <span class="top-bar-module-icon" id="topBarModuleIcon"></span>
+      <div class="top-bar-titles">
+        <span class="top-bar-title" id="topBarModuleTitle"></span>
+      </div>
+    </div>
+    <div class="top-bar-actions">
+      <button class="top-bar-search" onclick="openGlobalSearch()" title="Recherche globale (Ctrl+K)" aria-label="Recherche globale">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <button class="top-bar-theme" onclick="toggleTheme()" title="Mode sombre/clair" aria-label="Changer le thème">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <button class="top-bar-avatar" id="topBarAvatar" onclick="navigateTo('settings')" title="Mon compte" aria-label="Mon compte"></button>
+    </div>
+  </header>
+
+  <!-- BOTTOM NAVIGATION (Material Design 3) -->
+  <nav class="bottom-nav no-print" id="bottomNav" aria-label="Navigation principale">
+    <button class="bn-item" data-screen="menu" onclick="navigateTo('menu')" style="position:relative;" aria-label="Accueil">
+      <span class="bn-icon"><svg class="lucide-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span id="alertBadge" style="display:none;position:absolute;top:2px;right:10px;min-width:18px;height:18px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;border-radius:9px;text-align:center;line-height:18px;padding:0 4px;"></span><span class="bn-label">Accueil</span>
+    </button>
+    <button class="bn-item" data-screen="more" onclick="openMoreSheet()" aria-label="Modules">
+      <span class="bn-icon"><svg class="lucide-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></span><span class="bn-label">Modules</span>
+    </button>
+    <button class="bn-item" data-screen="trace" data-perm="trace:view" onclick="openTraceTab()" aria-label="Traçabilité">
+      <span class="bn-icon"><svg class="lucide-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span class="bn-label">Traçabilité</span>
+    </button>
+    <button class="bn-item" data-screen="settings" onclick="navigateTo('settings')" aria-label="Paramètres">
+      <span class="bn-icon"><svg class="lucide-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="bn-label">Paramètres</span>
+    </button>
+  </nav>
+
+  <!-- MODULE SHEET (Plus) -->
+  <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="if(event.target===this)closeMoreSheet()">
+    <div class="more-sheet" id="moreSheet">
+      <div class="more-sheet-handle"></div>
+      <div class="more-sheet-header">
+        <div class="more-sheet-title-group">
+          <h3>Tous les modules</h3>
+          <span class="more-module-count" id="moreModuleCount">0</span>
+        </div>
+        <button class="more-sheet-close" onclick="closeMoreSheet()">✕</button>
+      </div>
+      <div class="module-grid" id="moreModuleGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">⚠️</div>
+    <h3 class="modal-title" id="modalTitle">Confirmation</h3>
+    <p class="modal-message" id="modalMessage">Êtes-vous sûr ?</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="modalCancelBtn" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" id="modalOkBtn" onclick="confirmAction()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="updateModal" role="dialog" aria-modal="true" aria-labelledby="updateModalTitle">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-icon" id="updateModalIcon">⬆️</div>
+    <h3 class="modal-title" id="updateModalTitle">Mise à jour disponible</h3>
+    <div class="modal-message" id="updateModalMessage" style="text-align:left;font-size:13px;line-height:1.7;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="updateModalLaterBtn" onclick="UpdateCheck.later()">Plus tard</button>
+      <button class="btn btn-primary" id="updateModalNowBtn" onclick="UpdateCheck.download()">Mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="formModal" onclick="if(event.target===this)closeFormModal()" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-icon" id="formModalIcon">📝</div>
+    <h3 class="modal-title" id="formModalTitle">Formulaire</h3>
+    <div class="modal-message" id="formModalBody" style="text-align:left;font-size:13px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeFormModal()">Annuler</button>
+      <button class="btn btn-primary" id="formModalOkBtn" onclick="confirmFormModal()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="fardeauModal" onclick="if(event.target===this)closeFardeauModal()">
+  <div class="modal" style="max-width:560px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="modal-icon">📦</div>
+        <h3 class="modal-title" id="fardeauModalTitle" style="margin:0;">Nouveau fardeau</h3>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="closeFardeauModal()" style="font-size:18px;padding:6px 10px;">✕</button>
+    </div>
+    <div id="fardeauModalBody" style="font-size:13px;line-height:1.7;"></div>
+    <div class="modal-actions" id="fardeauModalActions" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="fardeauDetailModal" onclick="if(event.target===this)closeFardeauDetailModal()">
+  <div class="modal" style="max-width:520px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="modal-icon">📋</div>
+        <h3 class="modal-title" id="fardeauDetailTitle" style="margin:0;">Fiche fardeau</h3>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="closeFardeauDetailModal()" style="font-size:18px;padding:6px 10px;">✕</button>
+    </div>
+    <div id="fardeauDetailBody" style="font-size:13px;line-height:1.7;"></div>
+    <div class="modal-actions" id="fardeauDetailActions" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="qrModal" onclick="if(event.target===this)closeQrModal()">
+  <div class="modal" style="max-width:360px;text-align:center;">
+    <div class="modal-icon">▦</div>
+    <h3 class="modal-title" id="qrModalTitle">QR Grume</h3>
+    <div id="qrModalInfo" style="font-size:12px;margin-bottom:10px;"></div>
+    <canvas id="qrModalCanvas" style="border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.35);margin:0 auto;display:block;background:#fff;"></canvas>
+    <div style="font-size:13px;font-weight:800;margin-top:10px;letter-spacing:1px;" id="qrModalRef">—</div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Scanner ou saisir cette réf sur la machine A1/B1 pour lancer la grume</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeQrModal()">Fermer</button>
+      <button class="btn btn-primary" id="qrModalPrint">🖨️ Imprimer le label</button>
+    </div>
+  </div>
+</div>
+
+<div class="diagram-zoom-overlay" id="diagramZoomOverlay" onclick="if(event.target===this) closeDiagramZoom()">
+  <div class="diagram-zoom-panel">
+    <div class="diagram-zoom-header no-print">
+      <span><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Plan technique arbre 560mm — Vue complète</span>
+      <div style="display:flex;gap:8px;">
+        <button class="diagram-zoom-print" onclick="printZoomDiagram()"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8V4h10v4"/><path d="M5 17H3.5A1.5 1.5 0 0 1 2 15.5v-5A1.5 1.5 0 0 1 3.5 9h17A1.5 1.5 0 0 1 22 10.5v5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M7 14h10v6H7z"/></svg>Imprimer / PDF</button>
+        <button class="diagram-zoom-print" onclick="exportToPDF()"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 16h4"/></svg>Extraire le plan</button>
+        <button class="diagram-zoom-close" onclick="closeDiagramZoom()">&#x2715;</button>
+      </div>
+    </div>
+    <div class="diagram-zoom-print-header">
+      <img src="" alt="Charben Industrie" class="print-header-logo" id="zoomPrintLogo">
+      <div>
+        <div class="print-header-title">Plan technique arbre 560mm — Vue complète</div>
+        <div class="print-header-sub" id="zoomPrintDate"></div>
+      </div>
+    </div>
+    <div class="diagram-zoom-body" id="diagramZoomBody"></div>
+  </div>
+</div>
+
+<div class="pdf-viewer-overlay" id="pdfViewerOverlay">
+  <div class="pdf-viewer-header">
+    <span class="pdf-viewer-title" id="pdfViewerTitle">Plan Arbre 560mm</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="diagram-zoom-print" onclick="window.print()" id="pdfPrintBtn" title="Imprimer / sauvegarder en PDF"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Imprimer</button>
+      <button class="diagram-zoom-print" onclick="sharePDF()" id="pdfShareBtn"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Partager</button>
+      <button class="diagram-zoom-close" onclick="closePdfViewer()" style="font-size:22px;padding:10px 18px;">Fermer</button>
+    </div>
+  </div>
+  <div class="pdf-viewer-body" id="pdfViewerBody"></div>
+</div>
+
+<!-- GLOBAL SEARCH OVERLAY (Ctrl+K) -->
+<div class="search-overlay" id="globalSearchOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:15vh 16px 16px;" onclick="if(event.target===this)closeGlobalSearch()">
+  <div style="max-width:600px;margin:0 auto;">
+    <div style="position:relative;">
+      <input type="text" id="globalSearchInput" class="form-input" placeholder="Rechercher OF, grumes, clients, planning..." style="font-size:16px;padding:14px 44px 14px 16px;border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);border:2px solid var(--brand-green);" oninput="globalSearch(this.value)" autocomplete="off">
+      <button onclick="closeGlobalSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;padding:8px;">✕</button>
+    </div>
+    <div id="globalSearchResults" style="max-height:60vh;overflow-y:auto;margin-top:12px;"></div>
+  </div>
+</div>
+
+  <script src="err-boundary.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="modules/firestore-pages.js"></script>
+  <script defer src="firebase-core.js"></script>
+  <script defer src="vendor/dexie.min.js"></script>
+  <script defer src="offline-queue.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-performance-compat.js"></script>
+  <script defer src="analytics-init.js"></script>
+  <script defer src="vendor-loader.js"></script>
+  <script defer src="qr-scanner-native.js"></script>
+  <script defer src="haptics.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="data-v7.js"></script>
+  <script defer src="state.js"></script>
+  <script defer src="modules/permissions.js"></script>
+  <script defer src="modules/rbac-functions.js"></script>
+  <script defer src="auth.js"></script>
+<script defer src="fuzzy-search.js"></script>
+<script defer src="hydrate-api.js"></script>
+<script defer src="core.js"></script>
+<script defer src="modules/err-utils.js"></script>
+<script defer src="app-config.js"></script>
+<script defer src="app-version.js"></script>
+<script defer src="version-check.js"></script>
+  <script defer src="app.js"></script>
+  <script defer src="modules/disques-renderer.js"></script>
+  <script defer src="modules/dashboard-kpi.js"></script>
+  <script defer src="modules/of-list-manager.js"></script>
+  <script defer src="modules/pdf-export.js"></script>
+  <script defer src="modules/fardeaux-manager.js"></script>
+<script defer src="modules/trace-source.js"></script>
+<script defer src="trace-api.js"></script>
+<script defer src="modules/report-generator.js"></script>
+<script defer src="essence-api.js"></script>
+  <script defer src="data-tables.js"></script>
+  <script defer src="migrations.js"></script>
+  <script defer src="rules-engine.js"></script>
+  <script defer src="event-bus.js"></script>
+  <script defer src="task-allocator.js"></script>
+  <script defer src="prediction.js"></script>
+  <script defer src="modules/constants.js"></script>
+  <script defer src="modules/utils.js"></script>
+  <script defer src="modules/ui-skeleton.js"></script>
+  <script defer src="modules/stock-manager.js"></script>
+  <script defer src="modules/of-logic.js"></script>
+  <script defer src="modules/wip-manager.js"></script>
+  <script defer src="modules/mouvements-manager.js"></script>
+  <script defer src="modules/of-manager.js"></script>
+  <script defer src="modules/ui-renderer.js"></script>
+  <script defer src="modules/ui-components.js"></script>
+  <script defer src="modules/fiche-renderer.js"></script>
+  <script defer src="modules/dashboard-renderer.js"></script>
+  <script defer src="modules/orders-renderer.js"></script>
+  <script defer src="modules/qc-manager.js"></script>
+  <script defer src="modules/equipment-manager.js"></script>
+  <script defer src="modules/settings-manager.js"></script>
+  <script defer src="modules/fardeaux-renderer.js"></script>
+<script defer src="modules/rapports.js"></script>
+  <script defer src="modules/planning-renderer.js"></script>
+  <script defer src="modules/agenda-renderer.js"></script>
+  <script defer src="modules/of-reminders.js"></script>
+  <script defer src="modules/of-templates.js"></script>
+  <script defer src="modules/of-steps.js"></script>
+  <script defer src="modules/of-objectives.js"></script>
+  <script defer src="modules/of-icons.js"></script>
+  <script defer src="modules/of-flash.js"></script>
+  <script defer src="modules/sciage-logic.js"></script>
+    <script defer src="modules/predict-yield.js"></script>
+    <script defer src="modules/production-stats.js"></script>
+    <script defer src="modules/grumes-manager.js"></script>
+  <script defer src="modules/sync-manager.js"></script>
+  <script defer src="modules/yield-helpers.js"></script>
+  <script defer src="modules/calc-utils.js"></script>
+  <script defer src="modules/machine-state.js"></script>
+  <script defer src="modules/cutting-engine.js"></script>
+  <script defer src="module-aliases.js"></script>
+  <script defer src="transactions.js"></script>
+  <script defer src="inventree-patterns.js"></script>
+  <script defer src="of-tracking.js"></script>
+  <script defer src="realtime-sync.js"></script>
+  <script defer src="modules/auto-purge.js"></script>
+  <script>
+    /* ── Bootstrap : restaurer la session au démarrage ── */
+    document.addEventListener('DOMContentLoaded', function() {
+      /* ── V7: Migration + aliases (chaque étape isolée — une erreur ne bloque pas le bootstrap) ── */
+      try { if (typeof migrateV7 === 'function') migrateV7(); } catch (e) { console.warn('[bootstrap] migrateV7:', e.message); }
+      try { if (typeof setupV7Aliases === 'function') setupV7Aliases(); } catch (e) { console.warn('[bootstrap] setupV7Aliases:', e.message); }
+      try { if (typeof initAuth === 'function') initAuth(); } catch (e) { console.warn('[bootstrap] initAuth:', e.message); }
+      /* ── Service Worker : register ── */
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(function() {});
+      }
+      /* ── Idle preload qrcode/jsqr (vendors légers, non critiques) ── */
+      try { if (typeof idleLoadVendors === 'function') idleLoadVendors(); } catch (e) { console.warn('[bootstrap] idleLoadVendors:', e.message); }
+      /* ── Rappels : demander permission + reschedule ── */
+      try {
+        if (typeof ofReminders !== 'undefined') {
+          ofReminders.requestPerm();
+          ofReminders.rescheduleAll();
+        }
+      } catch (e) { console.warn('[bootstrap] ofReminders:', e.message); }
+      /* ── Flash info : lancer après le premier rendu dashboard ── */
+      setTimeout(function() {
+        try {
+          if (typeof ofFlash !== 'undefined' && typeof renderDashboardKPIs === 'function') {
+            renderDashboardKPIs();
+            ofFlash.launch();
+          }
+        } catch (e) { console.warn('[bootstrap] ofFlash:', e.message); }
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

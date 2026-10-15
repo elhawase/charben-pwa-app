@@ -1,0 +1,7 @@
+DirectoryIndex index.html
+Options -Indexes
+
+<FilesMatch "\.(html|css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
